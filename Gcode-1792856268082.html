@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>പ്രതിമാസ പ്രാക്ടിക്കൽ മാർക്ക് രജിസ്റ്റർ</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 8px; background-color: #f4f6f9; color: #333; font-size: 16px; }
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #e9ecef; padding: 10px; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 15px; font-weight: bold; }
+        button.delete-btn { background: #dc3545; }
+        button.add-btn { background: #28a745; }
+        button.print-btn { background: #17a2b8; }
+        button.backup-btn { background: #6c757d; }
+        button.import-btn { background: #fd7e14; }
+        button.change-pass-btn { background: #6f42c1; }
+        button.whatsapp-btn { background: #25D366; color: white; }
+        button:active { opacity: 0.8; }
+        h2 { text-align: center; font-size: 24px; margin: 8px 0; color: #004085; }
+        .form-group { margin-bottom: 8px; }
+        label { display: block; font-weight: bold; font-size: 15px; margin-bottom: 3px; color: #222; }
+        input[type="text"], input[type="date"], input[type="password"], input[type="number"], input[type="tel"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 140px; }
+        .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 1050px; }
+        th, td { border: 1px solid #ddd; padding: 8px 4px; text-align: center; font-size: 14px; word-wrap: break-word; }
+        th { background-color: #004085; color: white; font-size: 14px; }
+        
+        /* विषयों കൾക്കും മാസങ്ങൾക്കും ആകെ കോളത്തിനും വീതി */
+        th:first-child, td:first-child { width: 160px; font-size: 15px; text-align: left; padding-left: 8px; }
+        th:last-child, td:last-child { width: 55px; background-color: #f8f9fa; font-size: 16px; font-weight: bold; }
+
+        input.mark-input { width: 100%; height: 36px; text-align: center; padding: 2px; font-size: 16px; border: 1px solid #ccc; border-radius: 3px; box-sizing: border-box; }
+        
+        @media print {
+            @page { size: A4 landscape; margin: 0.5in; }
+            body { background: none; padding: 0; font-size: 12px; }
+            .container { box-shadow: none; padding: 0; max-width: 100%; width: 100%; }
+            .header-controls, button, .password-section, .backup-section, .no-print { display: none !important; }
+            input[type="text"], input[type="date"], input[type="number"], input[type="tel"] { border: none; border-bottom: 1px solid #000; padding: 1px; font-size: 13px; background: transparent; }
+            input.mark-input { border: none; padding: 0; font-size: 13px; height: auto; }
+            th, td { padding: 4px 2px; font-size: 12px; }
+            th:first-child, td:first-child { font-size: 12px; }
+            th:last-child, td:last-child { font-size: 13px; }
+            h2 { font-size: 17px; margin: 3px 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-controls">
+        <button type="button" onclick="prevStudent()">← മുമ്പത്തെ</button>
+        <span id="pageIndicator" style="font-weight: bold; font-size: 15px;">പേജ് 1 / 1</span>
+        <button type="button" onclick="nextStudent()">അടുത്തത് →</button>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+        <button type="button" class="add-btn" onclick="addStudent()" style="flex: 1; min-width: 110px;">+ പുതിയ കുട്ടി</button>
+        <button type="button" class="delete-btn" onclick="deleteStudent()" style="flex: 1; min-width: 90px;">ഡിലീറ്റ്</button>
+        <button type="button" class="print-btn" onclick="window.print()" style="flex: 1; min-width: 90px;">പ്രിന്റ്</button>
+        <button type="button" class="whatsapp-btn" onclick="sendWhatsApp()" style="flex: 1; min-width: 140px;">💬 WhatsApp വഴി അയക്കുക</button>
+        <button type="button" class="backup-btn" onclick="exportBackup()" style="flex: 1; min-width: 90px;">ബാക്കപ്പ്</button>
+        <button type="button" class="import-btn" onclick="triggerImport()" style="flex: 1; min-width: 90px;">ഇംപോർട്ട്</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
+    </div>
+
+    <h2>പ്രതിമാസ പ്രാക്ടിക്കൽ മാർക്ക് രജിസ്റ്റർ</h2>
+
+    <!-- മദ്റസയുടെ പേര്, അംഗീകാര നമ്പർ, സ്ഥലം എന്നിവ ഒറ്റ വരിയിൽ -->
+    <div class="row">
+        <div class="col form-group" style="flex: 2; min-width: 250px;">
+            <label>മദ്റസയുടെ പേര്:</label>
+            <input type="text" id="madrasaName" placeholder="മദ്റസയുടെ പേര് എഴുതുക" oninput="updateCommonField('madrasa', this.value)">
+        </div>
+        <div class="col form-group">
+            <label>അംഗീകാര നമ്പർ:</label>
+            <input type="text" id="regNumber" placeholder="അംഗീകാര നമ്പർ" oninput="updateCommonField('regNumber', this.value)">
+        </div>
+        <div class="col form-group">
+            <label>സ്ഥലം:</label>
+            <input type="text" id="location" placeholder="സ്ഥലം" oninput="updateCommonField('location', this.value)">
+        </div>
+    </div>
+
+    <!-- കുട്ടിയുടെ പേര് -->
+    <div class="row">
+        <div class="col form-group" style="flex: 2; min-width: 250px;">
+            <label>വിദ്യാർത്ഥിയുടെ പേര്:</label>
+            <input type="text" id="studentName" placeholder="കുട്ടിയുടെ പേര്" oninput="updateStudentName(this.value)">
+        </div>
+        <div class="col form-group">
+            <label>മൊബൈൽ നമ്പർ (WhatsApp):</label>
+            <input type="tel" id="mobileNumber" placeholder="9123456789" oninput="updateStudentField('mobile', this.value)">
+        </div>
+    </div>
+
+    <!-- കുട്ടിയുടെ പേരിനു താഴെ ക്ലാസ് + ഡിവിഷൻ + ക്രമ നമ്പർ -->
+    <div class="row">
+        <div class="col form-group">
+            <label>ക്ലാസ്:</label>
+            <input type="text" id="className" placeholder="ക്ലാസ്" oninput="updateCommonField('className', this.value)">
+        </div>
+        <div class="col form-group">
+            <label>ഡിവിഷൻ:</label>
+            <input type="text" id="division" placeholder="ഡിവിഷൻ" oninput="updateCommonField('division', this.value)">
+        </div>
+        <div class="col form-group">
+            <label>ക്രമ നമ്പർ (Roll No):</label>
+            <input type="number" id="rollNumber" placeholder="റോൾ നമ്പർ" oninput="updateStudentField('rollNumber', this.value)">
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align: left;">വിഷയങ്ങൾ</th>
+                    <th>മുഹർറം</th>
+                    <th>സഫർ</th>
+                    <th>റബീഉൽ അവ്വൽ</th>
+                    <th>റബീഉൽ ആഖിർ</th>
+                    <th>ജുമാദുൽ ഊലാ</th>
+                    <th>ജുമാദുൽ ഉഖ്റാ</th>
+                    <th>റജബ്</th>
+                    <th>ശഅ്ബാൻ</th>
+                    <th>റമദാൻ</th>
+                    <th>ശവ്വാൽ</th>
+                    <th>ദുൽഖഅ്ദ്</th>
+                    <th>ദുൽഹിജ്ജ</th>
+                    <th>ആകെ</th>
+                </tr>
+            </thead>
+            <tbody id="markTableBody">
+                <!-- Table rows generated dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row" style="margin-top: 8px;">
+        <div class="col form-group">
+            <label>ഉസ്താദിന്റെ പേര്:</label>
+            <input type="text" id="teacherName" placeholder="ഉസ്താദിന്റെ പേര്" oninput="updateCommonField('teacher', this.value)">
+        </div>
+        <div class="col form-group">
+            <label>തീയതി:</label>
+            <input type="date" id="regDate" oninput="updateCommonField('date', this.value)">
+        </div>
+    </div>
+
+    <!-- പാസ്‌വേഡ് ലോക്ക് / അൺലോക്ക് ഓപ്ഷൻ -->
+    <div class="row password-section" style="margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 5px; align-items: center;">
+        <div class="col form-group" style="margin-bottom: 0; min-width: 200px;">
+            <label style="font-size: 14px; color: #555;">മാർക്ക് എഡിറ്റ് ചെയ്യാൻ പാസ്‌വേഡ് നൽകുക:</label>
+            <input type="password" id="editPassword" placeholder="പാസ്‌വേഡ്" style="padding: 6px; font-size: 15px;">
+        </div>
+        <div class="col" style="display: flex; align-items: flex-end; gap: 8px; min-width: 320px; flex-wrap: wrap;">
+            <button type="button" onclick="unlockEditing()" style="background: #28a745; padding: 7px 12px; font-size: 14px;">അൺലോക്ക്</button>
+            <button type="button" onclick="lockEditing()" style="background: #dc3545; padding: 7px 12px; font-size: 14px;">ലോക്ക് ചെയ്യുക</button>
+            <button type="button" class="change-pass-btn" onclick="changePassword()" style="padding: 7px 12px; font-size: 14px;">പാസ്‌വേഡ് മാറ്റുക</button>
+            <span id="lockStatus" style="font-weight: bold; font-size: 13px; color: #dc3545; padding-bottom: 5px;">🔒 ലോക്ക്ഡ്</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const subjects = [
+        { name: "വായന", max: 20 },
+        { name: "എഴുത്ത്", max: 20 },
+        { name: "കർമ്മം", max: 20 },
+        { name: "ശീലം", max: 15 },
+        { name: "വേഷം", max: 15 },
+        { name: "ഹാജർ", max: 10 },
+        { name: "അസൈൻമെന്റ്", max: 10 },
+        { name: "ഖുർആൻ - ഹിഫ്ള്", max: 100 }
+    ];
+
+    const months = ["muharram", "safar", "rabi1", "rabi2", "jumada1", "jumada2", "rajab", "shaban", "ramadan", "shawwal", "dhulqadah", "dhulhijjah"];
+    const monthNamesML = ["മുഹർറം", "സഫർ", "റബീഉൽ അവ്വൽ", "റബീഉൽ ആഖിർ", "ജുമാദുൽ ഊലാ", "ജുമാദുൽ ഉഖ്റാ", "റജബ്", "ശഅ്ബാൻ", "റമദാൻ", "ശവ്വാൽ", "ദുൽഖഅ്ദ്", "ദുൽഹിജ്ജ"];
+    
+    let isUnlocked = false;
+
+    let students = JSON.parse(localStorage.getItem('practical_madrasa_students_v23')) || [];
+    if (!Array.isArray(students) || students.length === 0) {
+        students = [createEmptyStudent()];
+    }
+    let currentIndex = 0;
+
+    function getPassword() {
+        return localStorage.getItem('practical_madrasa_password') || "1234";
+    }
+
+    function createEmptyStudent() {
+        let prev = students.length > 0 ? students[students.length - 1] : {};
+        let s = { 
+            name: "", 
+            mobile: "",
+            rollNumber: "",
+            madrasa: prev.madrasa || "", 
+            regNumber: prev.regNumber || "",
+            location: prev.location || "", 
+            teacher: prev.teacher || "", 
+            date: prev.date || "", 
+            className: prev.className || "", 
+            division: prev.division || "", 
+            marks: {} 
+        };
+        subjects.forEach(sub => {
+            months.forEach(m => {
+                s.marks[sub.name + "_" + m] = "";
+            });
+        });
+        return s;
+    }
+
+    function initTable() {
+        const tbody = document.getElementById('markTableBody');
+        if(!tbody) return;
+        tbody.innerHTML = "";
+
+        subjects.forEach(sub => {
+            let tr = document.createElement('tr');
+            
+            let tdName = document.createElement('td');
+            tdName.style.textAlign = "left";
+            tdName.style.fontWeight = "bold";
+            tdName.innerHTML = `${sub.name} <span style="font-size:13px; color:#555;">(മാർക്ക്: ${sub.max})</span>`;
+            tr.appendChild(tdName);
+
+            months.forEach(m => {
+                let td = document.createElement('td');
+                let input = document.createElement('input');
+                input.type = "number";
+                input.className = "mark-input";
+                input.id = `input_${sub.name}_${m}`;
+                input.disabled = !isUnlocked; 
+                input.oninput = function() { 
+                    updateMark(sub.name, m, this.value); 
+                };
+                td.appendChild(input);
+                tr.appendChild(td);
+            });
+
+            let tdTotal = document.createElement('td');
+            tdTotal.id = "total_" + sub.name.replace(/[\s()&–-]/g, '_');
+            tdTotal.style.fontWeight = "bold";
+            tdTotal.style.fontSize = "16px";
+            tdTotal.innerText = "0";
+            tr.appendChild(tdTotal);
+
+            tbody.appendChild(tr);
+        });
+        loadStudentData();
+    }
+
+    function loadStudentData() {
+        if(students.length === 0) students.push(createEmptyStudent());
+        if(currentIndex >= students.length) currentIndex = students.length - 1;
+        if(currentIndex < 0) currentIndex = 0;
+
+        let s = students[currentIndex];
+        
+        document.getElementById('madrasaName').value = s.madrasa || "";
+        document.getElementById('regNumber').value = s.regNumber || "";
+        document.getElementById('location').value = s.location || "";
+        document.getElementById('teacherName').value = s.teacher || "";
+        document.getElementById('regDate').value = s.date || "";
+        document.getElementById('className').value = s.className || "";
+        document.getElementById('division').value = s.division || "";
+        document.getElementById('studentName').value = s.name || "";
+        document.getElementById('mobileNumber').value = s.mobile || "";
+        document.getElementById('rollNumber').value = s.rollNumber || "";
+
+        subjects.forEach(sub => {
+            let subTotal = 0;
+            months.forEach(m => {
+                let key = sub.name + "_" + m;
+                let val = (s.marks && s.marks[key] !== undefined) ? s.marks[key] : "";
+                let input = document.getElementById(`input_${sub.name}_${m}`);
+                if(input) input.value = val;
+                if(val !== "" && !isNaN(val)) subTotal += Number(val);
+            });
+            let totalId = "total_" + sub.name.replace(/[\s()&–-]/g, '_');
+            let totalTd = document.getElementById(totalId);
+            if(totalTd) totalTd.innerText = subTotal;
+        });
+
+        document.getElementById('pageIndicator').innerText = `പേജ് ${currentIndex + 1} / ${students.length}`;
+    }
+
+    function unlockEditing() {
+        let pass = document.getElementById('editPassword').value;
+        if(pass === getPassword()) {
+            isUnlocked = true;
+            document.querySelectorAll('.mark-input').forEach(input => input.disabled = false);
+            let status = document.getElementById('lockStatus');
+            status.innerText = "🔓 അൺലോക്ക്";
+            status.style.color = "#28a745";
+            alert("മാർക്ക് എഡിറ്റിംഗ് അൺലോക്ക് ചെയ്യപ്പെട്ടിരിക്കുന്നു!");
+        } else {
+            alert("തെറ്റായ പാസ്‌വേഡ്! വീണ്ടും ശ്രമിക്കുക.");
+        }
+    }
+
+    function lockEditing() {
+        isUnlocked = true; 
+        document.querySelectorAll('.mark-input').forEach(input => input.disabled = true);
+        isUnlocked = false;
+        let status = document.getElementById('lockStatus');
+        status.innerText = "🔒 ലോക്ക്ഡ്";
+        status.style.color = "#dc3545";
+        document.getElementById('editPassword').value = "";
+        alert("മാർക്ക് എഡിറ്റിംഗ് ലോക്ക് ചെയ്തിരിക്കുന്നു!");
+    }
+
+    function changePassword() {
+        let currentPass = prompt("നിലവിലെ പാസ്‌വേഡ് നൽകുക:");
+        if (currentPass === null) return;
+        if (currentPass === getPassword()) {
+            let newPass = prompt("പുതിയ പാസ്‌വേഡ് നൽകുക:");
+            if (newPass && newPass.trim() !== "") {
+                localStorage.setItem('practical_madrasa_password', newPass.trim());
+                alert("പാസ്‌വേഡ് വിജയകരമായി മാറ്റി!");
+            } else if (newPass !== null) {
+                alert("പാസ്‌വേഡ് ശൂന്യമാകാൻ പാടില്ല!");
+            }
+        } else {
+            alert("നിലവിലെ പാസ്‌വേഡ് തെറ്റാണ്!");
+        }
+    }
+
+    function sendWhatsApp() {
+        let s = students[currentIndex];
+        if(!s.mobile) {
+            alert("ദയവായി വിദ്യാർത്ഥിയുടെ മൊബൈൽ നമ്പർ നൽകുക!");
+            return;
+        }
+
+        let text = `*പ്രതിമാസ പ്രാക്ടിക്കൽ മാർക്ക് രജിസ്റ്റർ*\n`;
+        text += `---------------------------------\n`;
+        if(s.madrasa) text += `മദ്റസ: ${s.madrasa}\n`;
+        text += `വിദ്യാർത്ഥി: *${s.name || '---'}*\n`;
+        text += `ക്ലാസ്: ${s.className || '---'} | ഡിവിഷൻ: ${s.division || '---'} | Roll No: ${s.rollNumber || '---'}\n`;
+        text += `---------------------------------\n`;
+        text += `*മാർക്കുകൾ:*\n`;
+
+        subjects.forEach(sub => {
+            let subTotal = 0;
+            months.forEach(m => {
+                let val = s.marks[sub.name + "_" + m];
+                if(val !== "" && !isNaN(val)) subTotal += Number(val);
+            });
+            text += `• ${sub.name}: ${subTotal}\n`;
+        });
+
+        text += `---------------------------------\n`;
+        if(s.teacher) text += `ഉസ്താദ്: ${s.teacher}\n`;
+
+        let phone = s.mobile.replace(/[^0-9]/g, '');
+        if(phone.length === 10) phone = "91" + phone;
+
+        let url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+    }
+
+    function exportBackup() {
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(students, null, 2));
+        let downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "practical_register_backup.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function triggerImport() {
+        document.getElementById('importFile').click();
+    }
+
+    function importBackup(event) {
+        let file = event.target.files[0];
+        if (!file) return;
+
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let importedData = JSON.parse(e.target.result);
+                if (Array.isArray(importedData)) {
+                    if (confirm("നിലവിലുള്ള വിവരങ്ങൾക്ക് പകരം ബാക്കപ്പ് ഫയലിലെ വിവരങ്ങൾ സേവ് ചെയ്യണോ?")) {
+                        students = importedData;
+                        currentIndex = 0;
+                        saveToStorage();
+                        initTable();
+                        alert("ബാക്കപ്പ് വിജയകരമായി ഇംപോർട്ട് ചെയ്തു!");
+                    }
+                } else {
+                    alert("സാധുവായ ബാക്കപ്പ് ഫയൽ അല്ല!");
+                }
+            } catch (err) {
+                alert("ഫയൽ വായിക്കുന്നതിൽ പിശക് സംഭവിച്ചു!");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = "";
+    }
+
+    function updateMark(subName, month, value) {
+        if(!isUnlocked) return;
+        if(!students[currentIndex].marks) {
+            students[currentIndex].marks = {};
+        }
+        let key = subName + "_" + month;
+        students[currentIndex].marks[key] = value;
+        
+        let subTotal = 0;
+        months.forEach(m => {
+            let val = students[currentIndex].marks[subName + "_" + m];
+            if(val !== "" && val !== undefined && !isNaN(val)) {
+                subTotal += Number(val);
+            }
+        });
+        let totalId = "total_" + subName.replace(/[\s()&–-]/g, '_');
+        let totalTd = document.getElementById(totalId);
+        if(totalTd) totalTd.innerText = subTotal;
+
+        saveToStorage();
+    }
+
+    function updateCommonField(field, value) {
+        students.forEach(s => {
+            s[field] = value;
+        });
+        saveToStorage();
+    }
+
+    function updateStudentField(field, value) {
+        students[currentIndex][field] = value;
+        saveToStorage();
+    }
+
+    function updateStudentName(value) {
+        students[currentIndex].name = value;
+        saveToStorage();
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('practical_madrasa_students_v23', JSON.stringify(students));
+    }
+
+    function nextStudent() {
+        if (currentIndex < students.length - 1) {
+            currentIndex++;
+            loadStudentData();
+        }
+    }
+
+    function prevStudent() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            loadStudentData();
+        }
+    }
+
+    function addStudent() {
+        let newS = createEmptyStudent();
+        students.push(newS);
+        currentIndex = students.length - 1;
+        initTable();
+        saveToStorage();
+    }
+
+    function deleteStudent() {
+        if (students.length === 1) {
+            alert("കുറഞ്ഞത് ഒരു കുട്ടിയെങ്കിലും ഉണ്ടായിരിക്കണം!");
+            return;
+        }
+        if (confirm("ഈ കുട്ടിയുടെ വിവരങ്ങൾ ഡിലീറ്റ് ചെയ്യണമെന്ന് ഉറപ്പാണോ?")) {
+            students.splice(currentIndex, 1);
+            if (currentIndex >= students.length) currentIndex = students.length - 1;
+            initTable();
+            saveToStorage();
+        }
+    }
+
+    window.onload = function() {
+        initTable();
+    };
+</script>
+
+</body>
+</html>
